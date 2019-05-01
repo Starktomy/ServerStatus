@@ -1,74 +1,103 @@
 #!/usr/bin/env python
 # coding: utf-8
 # Update by : https://github.com/cppla/ServerStatus
-# 依赖于psutil跨平台库：
 # 支持Python版本：2.7 to 3.5
-# 支持操作系统： Linux, Windows, OSX, Sun Solaris, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
-# 时间： 20190128
+# 支持操作系统： Linux, OSX, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
+# 时间: 20190128
+
 
 SERVER = "127.0.0.1"
-PORT = 35601
-USER = "s01"
-PASSWORD = "USER_DEFAULT_PASSWORD"
-INTERVAL = 1 # 更新间隔
-
+PORT = PORT
+USER = "USER" 
+PASSWORD = "USER_PASSWORD"
+INTERVAL = 1 #更新间隔
 
 import socket
 import time
 import timeit
+import re
 import os
-import json
-import collections
-import psutil
 import sys
+import json
+import subprocess
+import collections
 import threading
 
 def get_uptime():
-    return int(time.time() - psutil.boot_time())
+    f = open('/proc/uptime', 'r')
+    uptime = f.readline()
+    f.close()
+    uptime = uptime.split('.', 2)
+    time = int(uptime[0])
+    return int(time)
 
 def get_memory():
-    Mem = psutil.virtual_memory()
-    try:
-        MemUsed = Mem.total - (Mem.cached + Mem.free)
-    except:
-        MemUsed = Mem.total - Mem.free
-    return int(Mem.total/1024.0), int(MemUsed/1024.0)
+    re_parser = re.compile(r'^(?P<key>\S*):\s*(?P<value>\d*)\s*kB')
+    result = dict()
+    for line in open('/proc/meminfo'):
+        match = re_parser.match(line)
+        if not match:
+            continue
+        key, value = match.groups(['key', 'value'])
+        result[key] = int(value)
 
-def get_swap():
-    Mem = psutil.swap_memory()
-    return int(Mem.total/1024.0), int(Mem.used/1024.0)
+    MemTotal = float(result['MemTotal'])
+    MemFree = float(result['MemFree'])
+    Cached = float(result['Cached'])
+    MemUsed = MemTotal - (Cached + MemFree)
+    SwapTotal = float(result['SwapTotal'])
+    SwapFree = float(result['SwapFree'])
+    return int(MemTotal), int(MemUsed), int(SwapTotal), int(SwapFree)
 
 def get_hdd():
-    valid_fs = [ "ext4", "ext3", "ext2", "reiserfs", "jfs", "btrfs", "fuseblk", "zfs", "simfs", "ntfs", "fat32", "exfat", "xfs" ]
-    disks = dict()
-    size = 0
-    used = 0
-    for disk in psutil.disk_partitions():
-        if not disk.device in disks and disk.fstype.lower() in valid_fs:
-            disks[disk.device] = disk.mountpoint
-    for disk in disks.itervalues():
-        usage = psutil.disk_usage(disk)
-        size += usage.total
-        used += usage.used
-    return int(size/1024.0/1024.0), int(used/1024.0/1024.0)
+    p = subprocess.check_output(['df', '-Tlm', '--total', '-t', 'ext4', '-t', 'ext3', '-t', 'ext2', '-t', 'reiserfs', '-t', 'jfs', '-t', 'ntfs', '-t', 'fat32', '-t', 'btrfs', '-t', 'fuseblk', '-t', 'zfs', '-t', 'simfs', '-t', 'xfs']).decode("Utf-8")
+    total = p.splitlines()[-1]
+    used = total.split()[3]
+    size = total.split()[2]
+    return int(size), int(used)
 
+def get_time():
+    stat_file = file("/proc/stat", "r")
+    time_list = stat_file.readline().split(' ')[2:6]
+    stat_file.close()
+    for i in range(len(time_list))  :
+        time_list[i] = int(time_list[i])
+    return time_list
+def delta_time():
+    x = get_time()
+    time.sleep(INTERVAL)
+    y = get_time()
+    for i in range(len(x)):
+        y[i]-=x[i]
+    return y
 def get_cpu():
-    return psutil.cpu_percent(interval=INTERVAL)
+    t = delta_time()
+    st = sum(t)
+    if st == 0:
+        st = 1
+    result = 100-(t[len(t)-1]*100.00/st)
+    return round(result)
 
 class Traffic:
     def __init__(self):
         self.rx = collections.deque(maxlen=10)
         self.tx = collections.deque(maxlen=10)
     def get(self):
+        f = open('/proc/net/dev', 'r')
+        net_dev = f.readlines()
+        f.close()
         avgrx = 0; avgtx = 0
-        for name, stats in psutil.net_io_counters(pernic=True).iteritems():
-            if "lo" in name or "tun" in name \
-                or "docker" in name or "veth" in name \
-                or "br-" in name or "vmbr" in name \
-                or "vnet" in name or "kube" in name:
+
+        for dev in net_dev[2:]:
+            dev = dev.split(':')
+            if "lo" in dev[0] or "tun" in dev[0] \
+                    or "docker" in dev[0] or "veth" in dev[0] \
+                    or "br-" in dev[0] or "vmbr" in dev[0] \
+                    or "vnet" in dev[0] or "kube" in dev[0]:
                 continue
-            avgrx += stats.bytes_recv
-            avgtx += stats.bytes_sent
+            dev = dev[1].split()
+            avgrx += int(dev[0])
+            avgtx += int(dev[8])
 
         self.rx.append(avgrx)
         self.tx.append(avgtx)
@@ -87,16 +116,19 @@ class Traffic:
 def liuliang():
     NET_IN = 0
     NET_OUT = 0
-    net = psutil.net_io_counters(pernic=True)
-    for k, v in net.items():
-        if 'lo' in k or 'tun' in k \
-                or 'docker' in k or 'veth' in k \
-                or 'br-' in k or 'vmbr' in k \
-                or 'vnet' in k or 'kube' in k:
-            continue
-        else:
-            NET_IN += v[1]
-            NET_OUT += v[0]
+    with open('/proc/net/dev') as f:
+        for line in f.readlines():
+            netinfo = re.findall('([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)', line)
+            if netinfo:
+                if netinfo[0][0] == 'lo' or 'tun' in netinfo[0][0] \
+                        or 'docker' in netinfo[0][0] or 'veth' in netinfo[0][0] \
+                        or 'br-' in netinfo[0][0] or 'vmbr' in netinfo[0][0] \
+                        or 'vnet' in netinfo[0][0] or 'kube' in netinfo[0][0] \
+                        or netinfo[0][1]=='0' or netinfo[0][9]=='0':
+                    continue
+                else:
+                    NET_IN += int(netinfo[0][1])
+                    NET_OUT += int(netinfo[0][9])
     return NET_IN, NET_OUT
 
 def tupd():
@@ -104,17 +136,14 @@ def tupd():
     tcp, udp, process, thread count: for view ddcc attack , then send warning
     :return:
     '''
-    if 'linux' in sys.platform:
-        t = int(os.popen('ss -t|wc -l').read()[:-1])-1
-        u = int(os.popen('ss -u|wc -l').read()[:-1])-1
-        p = int(os.popen('ps -ef|wc -l').read()[:-1])-2
-        d = int(os.popen('ps -xH|wc -l').read()[:-1])-2
-    else:
-        t = int(os.popen('netstat -an|find "TCP" /c').read()[:-1])-1
-        u = int(os.popen('netstat -an|find "UDP" /c').read()[:-1])-1
-        p = len(psutil.pids())
-        # cpu is high, wait fix
-        d = sum([psutil.Process(k).num_threads() for k in [x for x in psutil.pids()]])
+    s = subprocess.check_output("ss -t|wc -l", shell=True)
+    t = int(s[:-1])-1
+    s = subprocess.check_output("ss -u|wc -l", shell=True)
+    u = int(s[:-1])-1
+    s = subprocess.check_output("ps -ef|wc -l", shell=True)
+    p = int(s[:-1])-2
+    s = subprocess.check_output("ps -xH|wc -l", shell=True)
+    d = int(s[:-1])-2
     return t,u,p,d
 
 def ip_status():
@@ -167,7 +196,7 @@ def _ping_thread(host, mark, port):
         try:
             b = timeit.default_timer()
             s.connect((host, port))
-            pingTime[mark] = int((timeit.default_timer() - b) * 1000)
+            pingTime[mark] = int((timeit.default_timer()-b)*1000)
         except:
             lostPacket += 1
         finally:
@@ -268,9 +297,8 @@ if __name__ == '__main__':
                 NetRx, NetTx = traffic.get()
                 NET_IN, NET_OUT = liuliang()
                 Uptime = get_uptime()
-                Load_1, Load_5, Load_15 = os.getloadavg() if 'linux' in sys.platform else (0.0, 0.0, 0.0)
-                MemoryTotal, MemoryUsed = get_memory()
-                SwapTotal, SwapUsed = get_swap()
+                Load_1, Load_5, Load_15 = os.getloadavg()
+                MemoryTotal, MemoryUsed, SwapTotal, SwapFree = get_memory()
                 HDDTotal, HDDUsed = get_hdd()
                 IP_STATUS = ip_status()
 
@@ -288,7 +316,7 @@ if __name__ == '__main__':
                 array['memory_total'] = MemoryTotal
                 array['memory_used'] = MemoryUsed
                 array['swap_total'] = SwapTotal
-                array['swap_used'] = SwapUsed
+                array['swap_used'] = SwapTotal - SwapFree
                 array['hdd_total'] = HDDTotal
                 array['hdd_used'] = HDDUsed
                 array['cpu'] = CPU
