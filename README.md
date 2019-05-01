@@ -1,3 +1,14 @@
+#一键安装
+
+```bash
+wget --no-check-certificate https://raw.githubusercontent.com/tykgood6/ServerStatus/master/status-new.sh && bash status-new.sh
+
+
+
+```
+
+
+
 # ServerStatus中文版：   
 
 * ServerStatus中文版是一个酷炫高逼格的云探针、云监控、服务器云监控、多服务器探针~。
