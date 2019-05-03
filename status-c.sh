@@ -73,7 +73,8 @@ install(){
 }
 
 uninstall(){
-         rm -rf /status
+         kill -9 `ps -A | grep client-linux.py | awk '{print $1}'`
+	 rm -rf /status
 	 sed -i '/\/status\/run.sh/d' /etc/rc.local
 
 }
