@@ -44,7 +44,7 @@ download(){
 
 config(){
 
-	echo -e "#!/bin/bash \ncd /status \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s} >/dev/null 2>&1 & " >> run.sh && chmod +x run.sh
+	echo -e "#!/bin/bash \ncd /status \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}" >> run.sh && chmod +x run.sh
 }
 
 self-start(){
@@ -55,7 +55,7 @@ self-start(){
 
 run(){
      # nohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}
-      bash /status/run.sh
+      sh /status/run.sh
       
  
 
@@ -73,7 +73,7 @@ install(){
 }
 
 uninstall(){
-         kill -9 `ps -A | grep client-linux.py | awk '{print $1}'`
+         ps -ef | grep client-linux | cut -c 9-15| xargs kill -s 9
 	 rm -rf /status
 	 sed -i '/\/status\/run.sh/d' /etc/rc.local
 
