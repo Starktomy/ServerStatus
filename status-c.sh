@@ -31,26 +31,35 @@ download(){
 
 }
 
+run(){
+      nohup python /status/client-linux.py SERVER=s.ievo.top USER=${username_s} PASSWORD=${password_s}
+      
+
+
+}
+
 install(){
          Set_username
 	 Set_password
+	 directory
+	 download
 	 
 }
 
 echo -e "${Info} install "
-echo -e "1.install\n2. rinetd-bbr 杩愯鐘舵€乗n3.鍗歌浇 rinetd-bbr"
+echo -e "1.install\n2.uninstall \n"
 read -p "input:" function
 
 while [[ ! "${function}" =~ ^[1-3]$ ]]
 	do
-		echo -e "${Error} 鏃犳晥杈撳叆"
-		echo -e "${Info} 璇烽噸鏂伴€夋嫨" && read -p "杈撳叆鏁板瓧浠ラ€夋嫨:" function
+		echo -e "${Error} error"
+		echo -e "${Info} hahah" && read -p "input:" function
 	done
 
 if   [[ "${function}" == "1" ]]; then
 	install
 elif [[ "${function}" == "2" ]]; then
-	status
-else
 	uninstall
+else
+	echo "fuck"
 fi
