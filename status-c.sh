@@ -43,7 +43,7 @@ install(){
 	 Set_password
 	 directory
 	 download
-	 
+	 run
 }
 
 echo -e "${Info} install "
