@@ -31,3 +31,26 @@ download(){
 
 }
 
+install(){
+         Set_username
+	 Set_password
+	 
+}
+
+echo -e "${Info} install "
+echo -e "1.install\n2. rinetd-bbr 杩愯鐘舵€乗n3.鍗歌浇 rinetd-bbr"
+read -p "input:" function
+
+while [[ ! "${function}" =~ ^[1-3]$ ]]
+	do
+		echo -e "${Error} 鏃犳晥杈撳叆"
+		echo -e "${Info} 璇烽噸鏂伴€夋嫨" && read -p "杈撳叆鏁板瓧浠ラ€夋嫨:" function
+	done
+
+if   [[ "${function}" == "1" ]]; then
+	install
+elif [[ "${function}" == "2" ]]; then
+	status
+else
+	uninstall
+fi
