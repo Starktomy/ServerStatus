@@ -55,8 +55,9 @@ self-start(){
 
 run(){
      # nohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}
-      bash /status/run.sh
-
+      ./status/run.sh
+      
+ 
 
 }
 
@@ -70,6 +71,13 @@ install(){
 	 self-start
 	 run
 }
+
+uninstall(){
+         rm -rf /status
+	 sed -i '/\/status\/run.sh/d' /etc/rc.local
+
+}
+
 
 echo -e "${Info} install "
 echo -e "1.install\n2.check \n3.uninstall"
