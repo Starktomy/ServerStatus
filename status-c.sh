@@ -6,6 +6,17 @@ directory(){
             cd /status
 }
 
+Set_server(){
+	
+		echo -e "请输入 ServerStatus 服务端的 IP/域名[server]"
+		read -e -p "(默认: 127.0.0.1):" server_s
+		[[ -z "$server_s" ]] && server_s="127.0.0.1"
+	
+	echo && echo "	================================================"
+	echo -e "	IP/域名[server]: ${Red_background_prefix} ${server_s} ${Font_color_suffix}"
+	echo "	================================================" && echo
+}
+
 Set_username(){
 	
 	echo -e "请输入 ServerStatus 服务端中对应配置的用户名[username]（字母/数字，不可与其他账号重复）"
@@ -31,29 +42,43 @@ download(){
 
 }
 
+config(){
+
+	echo -e "#!/bin/bash \ncd /status \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}" >> run.sh && chmod +x run.sh
+}
+
+self-start(){
+	sed -i "s/exit 0/ /ig" /etc/rc.local
+	echo -e "\n/status/run.sh\c" >> /etc/rc.local
+	chmod +x /etc/rc.local
+}
+
 run(){
-      nohup python /status/client-linux.py SERVER=s.ievo.top USER=${username_s} PASSWORD=${password_s}
-      
+     # nohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}
+      bash /status/run.sh
 
 
 }
 
 install(){
-         Set_username
+         Set_server
+	 Set_username
 	 Set_password
 	 directory
 	 download
+	 config
+	 self-start
 	 run
 }
 
 echo -e "${Info} install "
-echo -e "1.install\n2.uninstall \n"
+echo -e "1.install\n2.check \n3.uninstall"
 read -p "input:" function
 
 while [[ ! "${function}" =~ ^[1-3]$ ]]
 	do
 		echo -e "${Error} error"
-		echo -e "${Info} hahah" && read -p "input:" function
+		echo -e "${Info} reinput" && read -p "input:" function
 	done
 
 if   [[ "${function}" == "1" ]]; then
