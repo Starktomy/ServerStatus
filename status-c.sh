@@ -44,7 +44,7 @@ download(){
 
 config(){
 
-	echo -e "#!/bin/bash \ncd /status \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}" >> run.sh && chmod +x run.sh
+	echo -e "#!/bin/bash \ncd /status \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s} >/dev/null 2>&1 &" >> run.sh && chmod +x run.sh
 }
 
 self-start(){
@@ -92,7 +92,7 @@ while [[ ! "${function}" =~ ^[1-3]$ ]]
 if   [[ "${function}" == "1" ]]; then
 	install
 elif [[ "${function}" == "2" ]]; then
-	uninstall
-else
 	echo "fuck"
+else
+	uninstall
 fi
