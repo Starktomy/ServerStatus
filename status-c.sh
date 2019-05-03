@@ -54,7 +54,7 @@ self-start(){
 }
 
 run(){
-     # nohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s}
+ 
       sh /status/run.sh
       
  
