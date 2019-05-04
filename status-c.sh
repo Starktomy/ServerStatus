@@ -44,7 +44,7 @@ download(){
 
 config(){
 
-	echo -e "#!/bin/bash \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s} >/dev/null 2>&1 & " >> run.sh && chmod +x run.sh
+	echo -e "#!/bin/bash \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s} >/dev/null 2>&1 & \necho “客户端启动成功” " >> run.sh && chmod +x run.sh
 }
 
 self-start(){
