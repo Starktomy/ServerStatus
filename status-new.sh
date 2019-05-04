@@ -608,7 +608,7 @@ Modify_ServerStatus_server_disabled(){
 		echo -e "${Error} 请输入正确的节点用户名 !" && exit 1
 	fi
 }
-Set_ServerStatus_client(){
+#Set_ServerStatus_client(){
 	check_installed_client_status
 	Set_config_client
 	Read_config_client
@@ -702,6 +702,35 @@ Install_ServerStatus_server(){
 	echo -e "${Info} 所有步骤 安装完毕，开始启动..."
 	Start_ServerStatus_server
 }
+directory(){
+            mkdir -p /status
+            cd /status
+}
+download(){
+       wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/tykgood6/ServerStatus/master/clients/client-linux.py'
+       chmod 777 client-linux.py
+
+}
+
+config(){
+
+	echo -e "#!/bin/bash \nnohup python /status/client-linux.py SERVER=${server_s} USER=${username_s} PASSWORD=${password_s} >/dev/null 2>&1 & \necho “客户端启动成功” " >> run.sh && chmod +x run.sh
+}
+
+self-start(){
+	sed -i "s/exit 0/ /ig" /etc/rc.local
+	echo -e "\n/status/run.sh\c" >> /etc/rc.local
+	chmod +x /etc/rc.local
+}
+
+run(){
+ 
+      bash /status/run.sh
+      
+ 
+
+}
+
 Install_ServerStatus_client(){
 	[[ -e "${client_file}/status-client.py" ]] && echo -e "${Error} 检测到 ServerStatus 客户端已安装 !" && exit 1
 	check_sys
@@ -718,24 +747,19 @@ Install_ServerStatus_client(){
 		fi
 	fi
 	echo -e "${Info} 开始设置 用户配置..."
-	Set_config_client
+	 Set_server
+	 Set_username
+	 Set_password
 	echo -e "${Info} 开始安装/配置 依赖..."
 	Installation_dependency "client"
 	echo -e "${Info} 开始下载/安装..."
-	Download_Server_Status_client
-	echo -e "${Info} 开始下载/安装 服务脚本(init)..."
-	Service_Server_Status_client
-	echo -e "${Info} 开始写入 配置..."
-	Read_config_client
-	Modify_config_client
-	echo -e "${Info} 开始设置 iptables防火墙..."
-	Set_iptables
-	echo -e "${Info} 开始添加 iptables防火墙规则..."
-	Add_iptables_OUT "${server_port_s}"
-	echo -e "${Info} 开始保存 iptables防火墙规则..."
-	Save_iptables
+         download
+	 config
+	 self-start
+	 
+	
 	echo -e "${Info} 所有步骤 安装完毕，开始启动..."
-	Start_ServerStatus_client
+	run
 }
 Update_ServerStatus_server(){
 	check_installed_server_status
@@ -931,7 +955,7 @@ Set_iptables(){
 		chmod +x /etc/network/if-pre-up.d/iptables
 	fi
 }
-Update_Shell(){
+#Update_Shell(){
 	sh_new_ver=$(wget --no-check-certificate -qO- -t1 -T3 "https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/status.sh"|grep 'sh_ver="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1) && sh_new_type="github"
 	[[ -z ${sh_new_ver} ]] && echo -e "${Error} 无法链接到 Github !" && exit 0
 	if [[ -e "/etc/init.d/status-client" ]]; then
@@ -959,9 +983,7 @@ echo && echo -e "  ServerStatus 一键安装管理脚本 ${Red_font_prefix}[v${s
  ${Green_font_prefix} 5.${Font_color_suffix} 停止 客户端
  ${Green_font_prefix} 6.${Font_color_suffix} 重启 客户端
 ————————————
- ${Green_font_prefix} 7.${Font_color_suffix} 设置 客户端配置
- ${Green_font_prefix} 8.${Font_color_suffix} 查看 客户端信息
- ${Green_font_prefix} 9.${Font_color_suffix} 查看 客户端日志
+ 
 ————————————
  ${Green_font_prefix}10.${Font_color_suffix} 切换为 服务端菜单" && echo
 if [[ -e "${client_file}/status-client.py" ]]; then
