@@ -37,7 +37,7 @@ Set_password(){
 }
 
 download(){
-       wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/tykgood6/ServerStatus/master/clients/client-linux.py'
+       wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py'
        chmod 777 client-linux.py
 
 }
